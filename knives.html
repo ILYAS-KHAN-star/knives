@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Ножи</title>
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  min-height: 100vh;
+
+  background-image: url("static/images/sakura.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+/* ===== Поиск + фильтр ===== */
+.search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 1100px;
+}
+
+#searchInput {
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  flex: 1;
+  font-size: 16px;
+  min-width: 180px;
+}
+
+#filterBtn {
+  background: #000;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.filter-wrapper {
+  position: relative;
+}
+
+.filter-menu {
+  display: none;
+  position: absolute;
+  top: 45px;
+  right: 0;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+  overflow: hidden;
+  z-index: 20;
+}
+
+.filter-menu div {
+  padding: 10px 18px;
+  cursor: pointer;
+}
+
+.filter-menu div:hover {
+  background: #000;
+  color: #fff;
+}
+
+/* ===== GRID ===== */
+.knives-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 1100px;
+  align-items: stretch;
+}
+
+/* ===== Карточка ===== */
+.knife-card {
+  background: rgba(255, 255, 255, 0.3);
+  padding: 18px;
+  border-radius: 12px;
+
+  text-align: center;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  backdrop-filter: blur(5px);
+
+  position: relative;
+}
+
+.knife-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.2);
+  z-index: 2;
+}
+
+.knife-card h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.knife-card p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+.knife-card img {
+    width: 100%;
+    max-width: 700px;
+    height: auto;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.knife-card a {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 7px 14px;
+
+  background: #000;
+  color: #fff;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.knife-card a:hover {
+  opacity: 0.85;
+}
+
+/* ===== Пагинация ===== */
+#pagination {
+  margin: 30px 0;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+#pagination button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #000;
+  background: #000;
+  color: #fff;
+  cursor: pointer;
+}
+
+#pagination button.active {
+  background: #fff;
+  color: #000;
+}
+
+/* ===== Мобильная адаптация ===== */
+@media (max-width: 600px) {
+
+  body {
+    padding: 12px;
+  }
+
+  .search-bar {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  #searchInput,
+  #filterBtn {
+    width: 100%;
+  }
+
+  .knife-card {
+    padding: 14px;
+  }
+
+  .knife-card h3 {
+    font-size: 15px;
+  }
+
+  .knife-card p {
+    font-size: 13px;
+  }
+
+  #pagination button {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- Поиск и фильтр -->
+<div class="search-bar">
+  <input id="searchInput" type="text" placeholder="Поиск ножа...">
+
+  <div class="filter-wrapper">
+    <button id="filterBtn">Фильтр</button>
+    <div id="filterMenu" class="filter-menu">
+      <div data-min="100" data-max="800">100–800 рублей</div>
+      <div data-min="800" data-max="1500">800–1500 рублей</div>
+      <div data-min="1500" data-max="2500">1500–2500 рублей</div>
+      <div data-min="2500" data-max="4000">2500–4000 рублей</div>
+      <div data-min="4000" data-max="8000">4000–8000 рублей</div>
+      <div data-min="8000" data-max="25000">8000–250000 рублей</div>
+      <div data-min="0" data-max="999999">Сбросить</div>
+    </div>
+  </div>
+</div>
+
+<!-- Карточки -->
+<div id="knivesGrid" class="knives-grid"></div>
+
+<!-- Пагинация -->
+<div id="pagination"></div>
+
+<script>
+/* ===== ДАННЫЕ ===== */
+const knives = [
+  {id:"knife1", name:"Катана", year:2022, material:"Сталь", price:250, description:"Традиционная японская катана.",image:"knife1.jpg"},
+  {id:"knife2", name:"Танто", year:2023, material:"Углерод", price:180, description:"Компактный боевой нож."},
+  {id:"knife3", name:"Финка", year:2021, material:"Сталь", price:200, description:"Финский нож для походов."},
+  {id:"knife4", name:"Керамбит", year:2023, material:"Керамика", price:220, description:"Нож  изогнутым лезвием."},
+  {id:"knife5", name:"Штык-нож", year:2020, material:"Сталь", price:300, description:"Военный штык-нож."},
+  {id:"knife6", name:"Боуи", year:2019, material:"Сталь", price:280, description:"Американский нож-боевой инструмент."},
+  {id:"knife7", name:"Сай", year:2021, material:"Углерод", price:15000, description:"Короткий тренировочный нож."},
+  {id:"knife8", name:"Широбан", year:2022, material:"Сталь", price:260, description:"Традиционный японский нож."},
+  {id:"knife9", name:"Рейнджер", year:2020, material:"Сталь", price:240, description:"Нож для выживания."},
+  {id:"knife10", name:"Керамбит Pro", year:2023, material:"Керамика", price:320, description:"Профессиональный керамбит."},
+   {id:"knife11", name:"Фалькон", year:2021, material:"Сталь", price:210, description:"Универсальный туристический нож."},
+  {id:"knife12", name:"Астра", year:2022, material:"Углерод", price:230, description:"Легкий нож для походов."},
+  {id:"knife13", name:"Рапира", year:2020, material:"Сталь", price:1900, description:"Элегантный нож для коллекции."},
+  {id:"knife14", name:"Викинг", year:2019, material:"Сталь", price:270, description:"Нож в стиле викингов."},
+  {id:"knife15", name:"Тандер", year:2023, material:"Керамика", price:310, description:"Боевой нож  прочным лезвием."},
+  {id:"knife16", name:"Акула", year:2021, material:"Сталь", price:220, description:"Нож агрессивным дизайном."},
+  {id:"knife17", name:"Барс", year:2022, material:"Углерод", price:260, description:"Компактный нож для туризма."},
+  {id:"knife18", name:"Тигр", year:2020, material:"Сталь", price:280, description:"Коллекционный боевой нож."},
+  {id:"knife19", name:"Сокол", year:2021, material:"Керамика", price:240, description:"Быстрый и легкий нож."},
+  {id:"knife20", name:"Феникс", year:2023, material:"Сталь", price:32000, description:"Профессиональный нож для выживания."},
+  {id:"knife21", name:"Дракон", year:2022, material:"Сталь", price:300, description:"Мощный боевой нож."},
+  {id:"knife22", name:"Орёл", year:2020, material:"Углерод", price:230, description:"Легкий туристический нож."},
+  {id:"knife23", name:"Пантера", year:2021, material:"Сталь", price:270, description:"Коллекционный нож  изогнутым лезвием."},
+  {id:"knife24", name:"Волк", year:2019, material:"Сталь", price:2500, description:"Надёжный нож для походов."},
+  {id:"knife25", name:"Гепард", year:2023, material:"Керамика", price:310, description:"Быстрый и острый нож."},
+  {id:"knife26", name:"Лис", year:2020, material:"Сталь", price:220, description:"Компактный нож для охоты."},
+  {id:"knife27", name:"", year:2022, material:"Углерод", price:280, description:"Боевой нож сизогнутым лезвием."},
+  {id:"knife28", name:"Бархан", year:2021, material:"Сталь", price:240, description:"Нож для туризма и выживания."},
+  {id:"knife29", name:"Сапсан", year:2023, material:"Керамика", price:300, description:"Коллекционный нож для ценителей."},
+  {id:"knife30", name:"Ягуар", year:2020, material:"Сталь", price:270, description:"Нож  прочным лезвием."},
+  {id:"knife31", name:"Лев", year:2021, material:"Сталь", price:320, description:"Коллекционный боевой нож."},
+  {id:"knife32", name:"Койот", year:2022, material:"Углерод", price:250, description:"Нож для выживания и туризма."},
+  {id:"knife33", name:"Медведь", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+   {id:"knife34", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+   {id:"knife35", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+  {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+  {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+   {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+   {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+  {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+  {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+   {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+   {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+  {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:3000, description:"Мощный нож для охоты."},
+  {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:3000, description:"Мощный нож для охоты."},
+    {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+  {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+   {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+   {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+  {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+  {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+   {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+   {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:300, description:"Мощный нож для охоты."},
+  {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:3000, description:"Мощный нож для охоты."},
+  {id:"knife33", name:"дь1", year:2023, material:"Сталь", price:3000, description:"Мощный нож для охоты."},
+    // ... добавь все ножи до knife100 аналогично
+];
+
+/* ===== НАСТРОЙКИ ===== */
+const ITEMS_PER_PAGE = 42;
+let currentPage = 1;
+let minPrice = 0;
+let maxPrice = Infinity;
+/* ===== ЭЛЕМЕНТЫ ===== */
+const grid = document.getElementById('knivesGrid');
+const pagination = document.getElementById('pagination');
+const searchInput = document.getElementById('searchInput');
+const filterMenu = document.getElementById('filterMenu');
+const filterBtn = document.getElementById('filterBtn');
+
+/* ===== ЛОГИКА ===== */
+function getFiltered() {
+  const query = searchInput.value.trim().toLowerCase(); // ← ПРОБЕЛЫ НЕ ЛОМАЮТ
+  return knives.filter(k =>
+    k.name.toLowerCase().includes(query) &&
+    k.price >= minPrice &&
+    k.price <= maxPrice
+  );
+}
+
+function renderPage() {
+  const filtered = getFiltered();
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
+  currentPage = Math.min(currentPage, totalPages);
+
+  const start = (currentPage - 1) * ITEMS_PER_PAGE;
+  const pageItems = filtered.slice(start, start + ITEMS_PER_PAGE);
+
+  grid.innerHTML = '';
+pageItems.forEach(k => {
+    const card = document.createElement('div');
+    card.className = 'knife-card';
+    card.innerHTML = 
+      `<img src="static/images/${k.image}" alt="${k.name}">
+      <h3>${k.name}</h3>
+      <p>Цена: $${k.price}</p>
+      <a href="knife.html?id=${k.id}">Подробнее</a>`
+    ;
+    grid.appendChild(card);
+});
+
+  renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+  pagination.innerHTML = '';
+  for(let i=1;i<=totalPages;i++){
+    const btn = document.createElement('button');
+    btn.textContent = i;
+    if(i === currentPage) btn.classList.add('active');
+    btn.onclick = () => { currentPage = i; renderPage(); };
+    pagination.appendChild(btn);
+  }
+}
+
+/* ===== СОБЫТИЯ ===== */
+searchInput.addEventListener('input', () => {
+  currentPage = 1;
+  renderPage();
+});
+
+filterBtn.onclick = () => {
+  filterMenu.style.display = filterMenu.style.display === 'block' ? 'none' : 'block';
+};
+
+filterMenu.querySelectorAll('div').forEach(item => {
+  item.onclick = () => {
+    minPrice = +item.dataset.min;
+    maxPrice = +item.dataset.max;
+    currentPage = 1;
+    filterMenu.style.display = 'none';
+    renderPage();
+  };
+});
+
+document.addEventListener('click', e => {
+  if(!filterBtn.contains(e.target) && !filterMenu.contains(e.target)) {
+    filterMenu.style.display = 'none';
+  }
+});
+
+/* ===== СТАРТ ===== */
+renderPage();
+</script>
+
+</body>
+</html>
